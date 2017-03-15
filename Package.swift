@@ -11,7 +11,6 @@ let package = Package(
     ],
     dependencies: [
         .Package(url: "https://github.com/RLovelett/SourceKit.git", majorVersion: 1),
-        .Package(url: "https://github.com/jpsim/Yams.git", Version(0, 1, 4)),
         .Package(url: "https://github.com/thoughtbot/Argo.git", majorVersion: 4),
         .Package(url: "https://github.com/edwardaux/Ogra.git", majorVersion: 4),
         .Package(url: "https://github.com/thoughtbot/Curry.git", majorVersion: 3),
