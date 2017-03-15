@@ -1,49 +1,68 @@
-import BaseProtocol
 import Dispatch
-import Foundation
-import LanguageServerProtocol
+import Basic
+import Commands
+import Workspace
+import PackageLoading
+import PackageGraph
+import PackageModel
+import Build
+import POSIX
+import Utility
 
-private let header: [String : String] = [
-    "Content-Type": "application/vscode-jsonrpc; charset=utf8"
-]
-
-let main = OperationQueue.main
-let stdin = FileHandle.standardInput
-var requests = RequestBuffer()
-stdin.waitForDataInBackgroundAndNotify()
-
-// When new data is available
-var dataAvailable : NSObjectProtocol!
-dataAvailable = NotificationCenter.default.addObserver(forName: .NSFileHandleDataAvailable, object: stdin, queue: main) { (notification) -> Void in
-    let buffer = stdin.availableData
-
-    guard !buffer.isEmpty else {
-        return stdin.waitForDataInBackgroundAndNotify()
+class ToolWorkspaceDelegate: WorkspaceDelegate {
+    func fetchingMissingRepositories(_ urls: Set<String>) {
     }
 
-    requests.append(buffer)
-
-    for requestBuffer in requests {
-        do {
-            let request = try Request(requestBuffer)
-            let response = handle(request)
-            /// If the request id is null then it is a notification and not a request
-            switch request {
-            case .request(_, _, _):
-                let toSend = response.data(header)
-                FileHandle.standardOutput.write(toSend)
-            default: ()
-            }
-        } catch let error as PredefinedError {
-            fatalError(error.description)
-        } catch {
-            fatalError("TODO: Better error handeling. \(error)")
-        }
+    func fetching(repository: String) {
+        print("Fetching \(repository)")
     }
 
-    return stdin.waitForDataInBackgroundAndNotify()
+    func cloning(repository: String) {
+        print("Cloning \(repository)")
+    }
+
+    func checkingOut(repository: String, at reference: String) {
+        // FIXME: This is temporary output similar to old one, we will need to figure
+        // out better reporting text.
+        print("Resolving \(repository) at \(reference)")
+    }
+
+    func removing(repository: String) {
+        print("Removing \(repository)")
+    }
+
+    func warning(message: String) {
+        print("warning: " + message)
+    }
 }
 
-// Launch the task
-RunLoop.main.run()
-//while RunLoop.main.run(mode: .defaultRunLoopMode, before: .distantFuture) {}
+let toolchain = try! LanguageServerToolchain()
+
+let path = AbsolutePath("/Users/ryan/Source/langserver-swift")
+let buildPath = path.appending(component: ".build")
+let edit = path.appending(component: "Packages")
+let pins = path.appending(component: "Package.pins")
+
+let manifestLoader = ManifestLoader(resources: toolchain)
+let delegate = ToolWorkspaceDelegate()
+
+let ws = try! Workspace(dataPath: buildPath, editablesPath: edit, pinsFile: pins, manifestLoader: manifestLoader, delegate: delegate)
+//dump(ws)
+
+let buildFlags = BuildFlags(xcc: nil, xswiftc: nil, xlinker: nil)
+
+/// Build the package graph using swift-build-tool.
+func build(graph: PackageGraph, includingTests: Bool, config: Build.Configuration) throws {
+    let yaml = try describe(buildPath, config, graph, flags: buildFlags, toolchain: toolchain)
+    dump(yaml)
+    //    try Commands.build(yamlPath: yaml, target: includingTests ? "test" : nil)
+}
+
+do {
+  ws.registerPackage(at: path)
+  let pg = try ws.loadPackageGraph()
+  dump(pg)
+  try build(graph: pg, includingTests: false, config: .debug)
+} catch ManifestParseError.invalidManifestFormat(let error) {
+    print(error)
+}
