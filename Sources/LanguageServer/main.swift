@@ -47,7 +47,6 @@ let manifestLoader = ManifestLoader(resources: toolchain)
 let delegate = ToolWorkspaceDelegate()
 
 let ws = try! Workspace(dataPath: buildPath, editablesPath: edit, pinsFile: pins, manifestLoader: manifestLoader, delegate: delegate)
-//dump(ws)
 
 let buildFlags = BuildFlags(xcc: nil, xswiftc: nil, xlinker: nil)
 
