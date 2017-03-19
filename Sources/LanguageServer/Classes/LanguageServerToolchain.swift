@@ -9,9 +9,8 @@
 import Basic
 import protocol Build.Toolchain
 import enum Commands.Error
-import PackageLoading
+import protocol PackageLoading.ManifestResourceProvider
 import POSIX
-import Utility
 
 #if os(macOS)
     private let whichSwiftcArgs = ["xcrun", "--find", "swiftc"]
