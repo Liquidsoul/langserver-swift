@@ -5,8 +5,7 @@ let package = Package(
     targets: [
         Target(name: "BaseProtocol"),
         Target(name: "SourceKitter"),
-        Target(name: "YamlConvertable"),
-        Target(name: "LanguageServerProtocol", dependencies: ["YamlConvertable", "BaseProtocol", "SourceKitter"]),
+        Target(name: "LanguageServerProtocol", dependencies: ["BaseProtocol", "SourceKitter"]),
         Target(name: "LanguageServer", dependencies: ["LanguageServerProtocol", "BaseProtocol"])
     ],
     dependencies: [
