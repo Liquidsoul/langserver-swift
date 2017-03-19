@@ -1,13 +1,8 @@
-import Dispatch
-import Basic
-import Commands
+import struct Basic.AbsolutePath
 import Workspace
-import PackageLoading
-import PackageGraph
-import PackageModel
-import Build
-import POSIX
-import Utility
+import class PackageLoading.ManifestLoader
+import func Build.describe
+import struct Utility.BuildFlags
 
 class ToolWorkspaceDelegate: WorkspaceDelegate {
     func fetchingMissingRepositories(_ urls: Set<String>) {
@@ -50,18 +45,12 @@ let ws = try! Workspace(dataPath: buildPath, editablesPath: edit, pinsFile: pins
 
 let buildFlags = BuildFlags(xcc: nil, xswiftc: nil, xlinker: nil)
 
-/// Build the package graph using swift-build-tool.
-func build(graph: PackageGraph, includingTests: Bool, config: Build.Configuration) throws {
-    let yaml = try describe(buildPath, config, graph, flags: buildFlags, toolchain: toolchain)
-    dump(yaml)
-    //    try Commands.build(yamlPath: yaml, target: includingTests ? "test" : nil)
-}
-
 do {
   ws.registerPackage(at: path)
   let pg = try ws.loadPackageGraph()
   dump(pg)
-  try build(graph: pg, includingTests: false, config: .debug)
-} catch ManifestParseError.invalidManifestFormat(let error) {
+  let yaml = try describe(buildPath, .debug, pg, flags: buildFlags, toolchain: toolchain)
+  dump(yaml)
+} catch let error {
     print(error)
 }
