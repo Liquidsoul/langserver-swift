@@ -2,65 +2,35 @@ import BaseProtocol
 import Dispatch
 import Foundation
 import LanguageServerProtocol
+import enum Result.NoError
+import ReactiveSwift
 
-private let header: [String : String] = [
-    "Content-Type": "application/vscode-jsonrpc; charset=utf8"
-]
-
-enum Result<R> {
-    case Success(R)
-    case Failure(Error)
-}
-
-typealias Async<A, B> = (_ a: A, _ handler: @escaping (Result<B>) -> Void) -> Void
-
-infix operator •
-
-func •<A, B, C>(f: @escaping Async<A, B>, g: @escaping Async<B, C>) -> Async<A, C> {
-    return { a, handler in
-        f(a, { result in
-            switch result {
-            case .Success(let b): g(b, handler)
-            case .Failure(let e): handler(.Failure(e))
-            }
-        })
-    }
-}
-
-func f(input: FileHandle, h: @escaping (Result<Data>) -> ()) {
-    let main = OperationQueue.main
-    let dataAvailable = NotificationCenter.default.addObserver(forName: .NSFileHandleDataAvailable, object: input, queue: main) { (notification) -> () in
-//        sleep(2000)
-//        NotificationCenter.default.removeObserver(dataAvailable)
-        h(.Success(input.availableData))
-    }
-
-    input.waitForDataInBackgroundAndNotify()
-}
-
-func g(buffer: RequestBuffer? = nil) -> (Data, (Result<RequestBuffer>) -> ()) -> () {
-    return { (i: Data, handler: (Result<RequestBuffer>) -> ()) in
-        switch buffer {
-        case .some(let b):
-            b.append(i)
-            handler(Result.Success(b))
-        case .none:
-            handler(Result.Success(RequestBuffer(i)))
+let signal = Signal<Data, NoError> { observer in
+    let no = NotificationCenter.default.addObserver(forName: .NSFileHandleDataAvailable, object: FileHandle.standardInput, queue: OperationQueue.main) { _ in
+        let data = FileHandle.standardInput.availableData
+        if data.isEmpty {
+            observer.sendCompleted()
+        } else {
+            observer.send(value: data)
+            FileHandle.standardInput.waitForDataInBackgroundAndNotify()
         }
     }
-}
 
-let chained = f • g()
-
-chained(FileHandle.standardInput) { result in
-    switch result {
-    case .Success(let request):
-        dump(request)
-//        exit(0)
-    case .Failure(let e):
-        NSLog(e.localizedDescription)
+    return ActionDisposable {
+        NotificationCenter.default.removeObserver(no, name: .NSFileHandleDataAvailable, object: FileHandle.standardInput)
     }
 }
+
+signal.observeCompleted {
+    exit(0)
+}
+
+signal.observeValues({
+    dump($0)
+})
+
+FileHandle.standardInput.waitForDataInBackgroundAndNotify()
+
 
 // When new data is available
 //var dataAvailable : NSObjectProtocol!
