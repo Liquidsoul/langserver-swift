@@ -20,6 +20,18 @@
       "version": "4.1.1"
     },
     {
+      "package": "ReactiveSwift",
+      "reason": null,
+      "repositoryURL": "https://github.com/ReactiveCocoa/ReactiveSwift.git",
+      "version": "1.1.0"
+    },
+    {
+      "package": "Result",
+      "reason": null,
+      "repositoryURL": "https://github.com/antitypical/Result.git",
+      "version": "3.2.1"
+    },
+    {
       "package": "Runes",
       "reason": null,
       "repositoryURL": "https://github.com/thoughtbot/Runes.git",
