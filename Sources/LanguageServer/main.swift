@@ -33,7 +33,7 @@ class ToolWorkspaceDelegate: WorkspaceDelegate {
 
 let toolchain = try! LanguageServerToolchain()
 
-let path = AbsolutePath("/Users/ryan/Source/langserver-swift")
+let path = AbsolutePath("/Users/ryan/Source/langserver-swift/Fixtures/ValidLayouts/Simple")
 let buildPath = path.appending(component: ".build")
 let edit = path.appending(component: "Packages")
 let pins = path.appending(component: "Package.pins")

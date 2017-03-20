@@ -10,6 +10,7 @@ import Argo
 import BaseProtocol
 import Foundation
 import LanguageServerProtocol
+import class PackageLoading.ManifestLoader
 
 var workspace: Workspace!
 var exitCode: Int32 = 1
@@ -19,6 +20,9 @@ func handle(_ request: Request) -> Response {
         switch request.method {
         case "initialize":
             let parameters: InitializeParams = try request.parse()
+            let toolchain = try LanguageServerToolchain()
+            let manifestLoader = ManifestLoader(resources: toolchain)
+            Server(<#T##parameters: InitializeParams##InitializeParams#>)
             workspace = Workspace(parameters)
             let response = Response(to: request, is: InitializeResult(workspace.capabilities))
             return response
