@@ -20,38 +20,31 @@ import ReactiveSwift
 //    }
 //}
 
-//let a: [Data] = []
-//Data.init(a.joined())
-//a.joined()
-
 extension SignalProtocol where Value == Data {
 
-    func foo() -> Signal<Request, PredefinedError> {
+    func requestSignal() -> Signal<Request, PredefinedError> {
         return Signal { observer in
             let state = RequestBuffer()
+
+            func bar() {
+                for msg in state where !msg.isEmpty {
+                    do {
+                        try observer.send(value: Request(msg))
+                    } catch let error as PredefinedError {
+                        observer.send(error: error)
+                    } catch {
+                        observer.send(error: PredefinedError.parse)
+                    }
+                }
+            }
 
             return self.observe { event in
                 switch event {
                 case .value(let value):
                     state.append(value)
-                    while let msg = state.next() {
-                        if msg.isEmpty { continue }
-                        do {
-                            let str = String(data: msg, encoding: .utf8)!
-                            try observer.send(value: Request(msg))
-                        } catch {
-                            observer.send(error: PredefinedError.parse)
-                        }
-                    }
+                    bar()
                 case .completed:
-                    while let msg = state.next() {
-                        if msg.isEmpty { continue }
-                        do {
-                            try observer.send(value: Request(msg))
-                        } catch {
-                            observer.send(error: PredefinedError.parse)
-                        }
-                    }
+                    bar()
                     observer.sendCompleted()
                 case .failed(_):
                     observer.send(error: PredefinedError.internalError)
@@ -65,20 +58,25 @@ extension SignalProtocol where Value == Data {
 }
 
 let (mocStdin, foo) = Signal<Data, NoError>.pipe()
-let bar = mocStdin.foo()
+let bar = mocStdin.requestSignal()
+let state: Server? = nil
 
-//bar.observeCompleted {
-//    exit(0)
-//}
-    bar
-    .observeResult { result in
-        switch result {
-        case .success(let request):
-            dump(request)
-        case .failure(let error):
-            print(error)
-        }
+bar.observeCompleted {
+    exit(0)
+}
+
+bar.map { (request: Request) -> Response in
+
+}
+
+bar.observeResult { result in
+    switch result {
+    case .success(let request):
+        dump(request)
+    case .failure(let error):
+        print(error)
     }
+}
 
 foo.send(value: "Content-Length: 185\r\n".data(using: .utf8)!)
 foo.send(value: "\r\n{\"jsonrpc\":\"2.0\",\"id\":0,\"method\":\"initialize\",".data(using: .utf8)!)
@@ -89,10 +87,6 @@ foo.send(value: "Content-Type: application/vscode-jsonrpc; charset=utf8\r\n".dat
 foo.send(value: "\r\n".data(using: .utf8)!)
 foo.send(value: "{\"method\":\"shutdown\",\"params\":null,\"id\":1,\"jsonrpc\":\"2.0\"}".data(using: .utf8)!)
 foo.sendCompleted()
-
-mocStdin.observeCompleted {
-    exit(0)
-}
 
 // Launch the task
 //FileHandle.standardInput.waitForDataInBackgroundAndNotify()
